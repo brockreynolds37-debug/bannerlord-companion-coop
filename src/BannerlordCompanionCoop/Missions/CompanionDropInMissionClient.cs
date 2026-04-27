@@ -9,6 +9,14 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
 
     public string? AssignedHeroStringId { get; private set; }
 
+    public override MultiplayerGameType GameType => MultiplayerGameType.Battle;
+
+    public override bool IsGameModeTactical => false;
+
+    public override bool IsGameModeUsingRoundCountdown => false;
+
+    public override bool IsGameModeUsingGold => false;
+
     public override void OnBehaviorInitialize()
     {
         base.OnBehaviorInitialize();
@@ -28,5 +36,14 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     {
         RequestedSeatId = assignment.SeatId;
         AssignedHeroStringId = assignment.HeroStringId;
+    }
+
+    public override int GetGoldAmount()
+    {
+        return 0;
+    }
+
+    public override void OnGoldAmountChangedForRepresentative(MissionRepresentativeBase representative, int goldAmount)
+    {
     }
 }

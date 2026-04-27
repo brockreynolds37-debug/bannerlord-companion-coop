@@ -3,6 +3,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -20,8 +21,20 @@
       <HintPath>$(BannerlordClientDir)\TaleWorlds.Library.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="TaleWorlds.DotNet">
+      <HintPath>$(BannerlordClientDir)\TaleWorlds.DotNet.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.ObjectSystem">
+      <HintPath>$(BannerlordClientDir)\TaleWorlds.ObjectSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.MountAndBlade">
       <HintPath>$(BannerlordClientDir)\TaleWorlds.MountAndBlade.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.Diamond">
+      <HintPath>$(BannerlordClientDir)\TaleWorlds.MountAndBlade.Diamond.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="TaleWorlds.CampaignSystem">
@@ -34,4 +47,3 @@
     </Reference>
   </ItemGroup>
 </Project>
-

@@ -4,9 +4,13 @@ using TaleWorlds.MountAndBlade;
 
 namespace BannerlordCompanionCoop.Modes;
 
-public sealed class CompanionDropInGameMode : MissionBasedMultiplayerGameMode
+public sealed class CompanionDropInGameMode : MultiplayerGameMode
 {
     public CompanionDropInGameMode(string gameType) : base(gameType)
+    {
+    }
+
+    public override void JoinCustomGame(TaleWorlds.MountAndBlade.Diamond.JoinGameData joinGameData)
     {
     }
 
@@ -26,9 +30,7 @@ public sealed class CompanionDropInGameMode : MissionBasedMultiplayerGameMode
                 new MissionBoundaryPlacer(),
                 new MissionBoundaryCrossingHandler(),
                 new MultiplayerGameNotificationsComponent(),
-                new MissionOptionsComponent(),
-                new MultiplayerPreloadHelper(),
+                new TaleWorlds.MountAndBlade.Source.Missions.MissionOptionsComponent(),
             });
     }
 }
-

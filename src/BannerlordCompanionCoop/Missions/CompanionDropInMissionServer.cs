@@ -32,4 +32,13 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     public CampaignHostSession HostSession => _hostSession;
 
     public string DebugSummary => _coordinator?.BuildDebugSummary() ?? "state=uninitialized";
+
+    public override bool IsGameModeUsingOpposingTeams => false;
+
+    public override bool IsGameModeHidingAllAgentVisuals => false;
+
+    public override MultiplayerGameType GetMissionType()
+    {
+        return MultiplayerGameType.Battle;
+    }
 }
