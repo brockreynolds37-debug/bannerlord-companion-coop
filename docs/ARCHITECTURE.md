@@ -53,6 +53,12 @@ This is the first place likely to need version-specific cleanup once tested agai
 - decide which remote player can possess which hero
 - push spawn/possession state to clients
 
+In the current repo pass it already uses a `CompanionMissionCoordinator` with:
+- a hardcoded debug save id
+- a small debug companion catalog
+- seat publication into the mission registry
+- one temporary fake guest claim to prove the state flow
+
 ### Client mission behavior
 
 `CompanionDropInMissionClient` is intended to:
@@ -63,6 +69,22 @@ This is the first place likely to need version-specific cleanup once tested agai
 ### Seat registry
 
 `CompanionSeatRegistry` is pure C# state used to keep mission seat definitions and reservations separate from Bannerlord API details.
+
+It now also builds resolved mission assignments so the spawn/possession layer can consume a simpler list of:
+- seat id
+- hero id
+- remote player id
+- join scope
+
+### Mission coordinator
+
+`CompanionMissionCoordinator` is the current vertical-slice orchestrator. It sits between a campaign-backed host session and the mission registry. Right now it is intentionally version-agnostic and does four concrete things:
+- starts a host session
+- publishes companion seats
+- accepts claims
+- produces mission assignments
+
+This is the layer that should stay mostly testable even as the Bannerlord API glue shifts by game version.
 
 ## Deferred items
 
@@ -81,4 +103,3 @@ On a Windows PC with Bannerlord installed:
 - trim any API mismatches
 - get a custom multiplayer mission to boot
 - hardcode one fake companion seat and prove the join flow
-

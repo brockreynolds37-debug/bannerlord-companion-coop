@@ -21,6 +21,8 @@ This repo is a starter scaffold. It establishes:
 - Multiplayer game mode registration
 - Mission-side server/client behavior shells
 - A seat registry for binding remote players to host-owned companion heroes
+- A host session model that can publish companion seats into a mission snapshot
+- A hardcoded debug mission path that seeds test companions and creates one fake remote assignment
 - Design notes for the next implementation passes
 
 It does not yet implement:
@@ -47,4 +49,3 @@ Get a modded multiplayer mission booting with:
 - a hardcoded test scene and spawn flow
 
 After that, wire the campaign host into mission launch and possession.
-

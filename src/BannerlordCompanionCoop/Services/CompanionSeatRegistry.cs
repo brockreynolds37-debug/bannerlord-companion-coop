@@ -50,6 +50,11 @@ public sealed class CompanionSeatRegistry
         return true;
     }
 
+    public bool TryGetReservation(string seatId, out CompanionSeatReservation? reservation)
+    {
+        return _reservations.TryGetValue(seatId, out reservation);
+    }
+
     public bool ReleaseSeat(string seatId)
     {
         return _reservations.Remove(seatId);
@@ -59,5 +64,39 @@ public sealed class CompanionSeatRegistry
     {
         return _reservations.ContainsKey(seatId);
     }
-}
 
+    public ReadOnlyCollection<CompanionSeatDefinition> GetAvailableSeats()
+    {
+        List<CompanionSeatDefinition> seats = _definitions.Values
+            .Where(definition => definition.AllowGuestControl && !_reservations.ContainsKey(definition.SeatId))
+            .OrderBy(definition => definition.DisplayName, StringComparer.Ordinal)
+            .ToList();
+
+        return seats.AsReadOnly();
+    }
+
+    public IReadOnlyList<CompanionSeatAssignment> BuildAssignments()
+    {
+        List<CompanionSeatAssignment> assignments = new();
+
+        foreach ((string seatId, CompanionSeatReservation reservation) in _reservations)
+        {
+            if (!_definitions.TryGetValue(seatId, out CompanionSeatDefinition? definition))
+            {
+                continue;
+            }
+
+            assignments.Add(
+                new CompanionSeatAssignment(
+                    definition.SeatId,
+                    definition.HeroStringId,
+                    definition.DisplayName,
+                    reservation.RemotePlayerId,
+                    reservation.JoinScope));
+        }
+
+        return assignments
+            .OrderBy(assignment => assignment.DisplayName, StringComparer.Ordinal)
+            .ToArray();
+    }
+}

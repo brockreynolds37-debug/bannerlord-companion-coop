@@ -4,12 +4,13 @@
 
 1. Add real assembly references on a Windows PC and fix API mismatches against the installed Bannerlord version.
 2. Confirm the module appears in the launcher and the custom multiplayer mode can boot.
-3. Replace the placeholder seat flow with Bannerlord network messages:
+3. Replace the temporary debug claim flow with Bannerlord network messages:
    - host seat list
    - guest seat claim
    - seat claim approval
    - mission spawn possession assignment
-4. Hardcode one supported mission type first, ideally a battle mission.
+4. Replace the debug seat catalog with real companion extraction from the host campaign session.
+5. Hardcode one supported mission type first, ideally a battle mission.
 
 ## After bootstrapping
 
