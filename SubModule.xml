@@ -1,0 +1,24 @@
+<Module>
+  <Name value="Bannerlord Companion Co-op" />
+  <Id value="BannerlordCompanionCoop" />
+  <Version value="v0.0.1" />
+  <ModuleCategory value="Multiplayer" />
+  <DependedModules>
+    <DependedModule Id="Native" Optional="false" />
+    <DependedModule Id="SandboxCore" Optional="true" />
+    <DependedModule Id="Sandbox" Optional="true" />
+    <DependedModule Id="StoryMode" Optional="true" />
+    <DependedModule Id="CustomBattle" Optional="true" />
+  </DependedModules>
+  <SubModules>
+    <SubModule>
+      <Name value="BannerlordCompanionCoop" />
+      <DLLName value="BannerlordCompanionCoop.dll" />
+      <SubModuleClassType value="BannerlordCompanionCoop.BannerlordCompanionCoopSubModule" />
+      <Tags>
+        <Tag key="DedicatedServerType" value="none" />
+      </Tags>
+    </SubModule>
+  </SubModules>
+</Module>
+
