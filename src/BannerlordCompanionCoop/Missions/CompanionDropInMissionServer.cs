@@ -9,6 +9,7 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     private readonly CampaignHostSession _hostSession = new();
     private readonly CompanionSeatRegistry _seatRegistry = new();
     private CompanionMissionCoordinator? _coordinator;
+    private CompanionMissionPlan? _latestPlan;
 
     public override void OnBehaviorInitialize()
     {
@@ -25,6 +26,7 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
                 "debug_remote_player_1",
                 CompanionMissionJoinScope.Battles));
         _coordinator.BeginMission();
+        RefreshPlan();
     }
 
     public CompanionSeatRegistry SeatRegistry => _seatRegistry;
@@ -33,6 +35,8 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
 
     public string DebugSummary => _coordinator?.BuildDebugSummary() ?? "state=uninitialized";
 
+    public CompanionMissionPlan? LatestPlan => _latestPlan;
+
     public override bool IsGameModeUsingOpposingTeams => false;
 
     public override bool IsGameModeHidingAllAgentVisuals => false;
@@ -40,5 +44,50 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     public override MultiplayerGameType GetMissionType()
     {
         return MultiplayerGameType.Battle;
+    }
+
+    public bool TryClaimSeatForRemotePlayer(CompanionSeatClaim claim)
+    {
+        if (_coordinator is null)
+        {
+            return false;
+        }
+
+        bool claimed = _coordinator.TryClaimSeat(claim);
+
+        if (claimed)
+        {
+            RefreshPlan();
+        }
+
+        return claimed;
+    }
+
+    public int ReleaseRemotePlayer(string remotePlayerId)
+    {
+        if (_coordinator is null)
+        {
+            return 0;
+        }
+
+        int released = _coordinator.ReleaseRemotePlayer(remotePlayerId);
+
+        if (released > 0)
+        {
+            RefreshPlan();
+        }
+
+        return released;
+    }
+
+    private void RefreshPlan()
+    {
+        if (_coordinator is null)
+        {
+            _latestPlan = null;
+            return;
+        }
+
+        _latestPlan = _coordinator.BuildMissionPlan();
     }
 }

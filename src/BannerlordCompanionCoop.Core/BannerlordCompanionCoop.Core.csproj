@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>BannerlordCompanionCoop.Core</AssemblyName>
+    <RootNamespace>BannerlordCompanionCoop</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\BannerlordCompanionCoop\Contracts\**\*.cs" Link="Contracts\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\BannerlordCompanionCoop\Services\**\*.cs" Link="Services\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

@@ -10,6 +10,7 @@ public sealed class CompanionMissionCoordinator
     private readonly CampaignHostSession _hostSession;
     private readonly CompanionSeatRegistry _seatRegistry;
     private readonly List<CompanionSeatAssignment> _assignments = new();
+    private MissionSeatSnapshot? _activeSnapshot;
 
     public CompanionMissionCoordinator(CampaignHostSession hostSession, CompanionSeatRegistry seatRegistry)
     {
@@ -33,8 +34,8 @@ public sealed class CompanionMissionCoordinator
 
     public void PublishSeatsForMission(CompanionMissionJoinScope joinScope)
     {
-        MissionSeatSnapshot snapshot = _hostSession.BuildMissionSnapshot(joinScope);
-        _seatRegistry.ReplaceDefinitions(snapshot.Seats);
+        _activeSnapshot = _hostSession.BuildMissionSnapshot(joinScope);
+        _seatRegistry.ReplaceDefinitions(_activeSnapshot.Seats);
         _seatRegistry.SetMissionState(CompanionMissionState.WaitingForGuestSelections);
         _assignments.Clear();
     }
@@ -62,9 +63,41 @@ public sealed class CompanionMissionCoordinator
         _seatRegistry.SetMissionState(CompanionMissionState.MissionEnded);
     }
 
+    public CompanionMissionPlan BuildMissionPlan()
+    {
+        if (_activeSnapshot is null)
+        {
+            throw new InvalidOperationException("Mission seats must be published before a mission plan is built.");
+        }
+
+        return new CompanionMissionPlan(
+            _activeSnapshot.SaveId,
+            _activeSnapshot.JoinScope,
+            _seatRegistry.State,
+            _seatRegistry.BuildSeatOffers(),
+            Assignments);
+    }
+
+    public int ReleaseRemotePlayer(string remotePlayerId)
+    {
+        int releasedCount = _seatRegistry.ReleaseSeatsForRemotePlayer(remotePlayerId);
+
+        if (releasedCount > 0)
+        {
+            RebuildAssignments();
+        }
+
+        return releasedCount;
+    }
+
     public string BuildDebugSummary()
     {
-        return $"state={_seatRegistry.State}; seats={_seatRegistry.Definitions.Count}; claims={_seatRegistry.Reservations.Count}; assignments={_assignments.Count}";
+        if (_activeSnapshot is null)
+        {
+            return $"state={_seatRegistry.State}; snapshot=none; seats={_seatRegistry.Definitions.Count}; claims={_seatRegistry.Reservations.Count}; assignments={_assignments.Count}";
+        }
+
+        return $"state={_seatRegistry.State}; save={_activeSnapshot.SaveId}; scope={_activeSnapshot.JoinScope}; seats={_seatRegistry.Definitions.Count}; claims={_seatRegistry.Reservations.Count}; assignments={_assignments.Count}";
     }
 
     private void RebuildAssignments()

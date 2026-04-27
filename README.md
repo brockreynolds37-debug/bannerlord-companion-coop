@@ -20,8 +20,10 @@ This repo is a starter scaffold. It establishes:
 - Bannerlord module metadata
 - Multiplayer game mode registration
 - Mission-side server/client behavior shells
+- A TaleWorlds-free core library for seat/session state
 - A seat registry for binding remote players to host-owned companion heroes
 - A host session model that can publish companion seats into a mission snapshot
+- A mission-plan snapshot shape with seat offers and resolved assignments
 - A hardcoded debug mission path that seeds test companions and creates one fake remote assignment
 - Design notes for the next implementation passes
 
@@ -39,6 +41,7 @@ It does not yet implement:
 3. Copy `BannerlordAssemblyPaths.props.example` to `BannerlordAssemblyPaths.props`.
 4. Fill in the local install paths in that props file.
 5. Open the project in Visual Studio 2022 with .NET 6 support.
+6. Build `BannerlordCompanionCoop.Core` first if Visual Studio needs to restore project references.
 
 ## First implementation target
 

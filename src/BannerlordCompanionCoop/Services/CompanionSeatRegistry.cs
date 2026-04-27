@@ -26,11 +26,22 @@ public sealed class CompanionSeatRegistry
 
     public void ReplaceDefinitions(IEnumerable<CompanionSeatDefinition> definitions)
     {
+        HashSet<string> activeSeatIds = new(StringComparer.Ordinal);
         _definitions.Clear();
 
         foreach (CompanionSeatDefinition definition in definitions)
         {
             _definitions[definition.SeatId] = definition;
+            activeSeatIds.Add(definition.SeatId);
+        }
+
+        string[] staleReservationSeatIds = _reservations.Keys
+            .Where(seatId => !activeSeatIds.Contains(seatId))
+            .ToArray();
+
+        foreach (string seatId in staleReservationSeatIds)
+        {
+            _reservations.Remove(seatId);
         }
     }
 
@@ -41,7 +52,12 @@ public sealed class CompanionSeatRegistry
             return false;
         }
 
-        if (!definition.AllowGuestControl || _reservations.ContainsKey(seatId))
+        if (!definition.AllowGuestControl || !definition.JoinScope.Allows(joinScope) || _reservations.ContainsKey(seatId))
+        {
+            return false;
+        }
+
+        if (TryGetReservationForRemotePlayer(remotePlayerId, out _))
         {
             return false;
         }
@@ -63,6 +79,14 @@ public sealed class CompanionSeatRegistry
     public bool IsSeatReserved(string seatId)
     {
         return _reservations.ContainsKey(seatId);
+    }
+
+    public bool TryGetReservationForRemotePlayer(string remotePlayerId, out CompanionSeatReservation? reservation)
+    {
+        reservation = _reservations.Values.FirstOrDefault(
+            value => string.Equals(value.RemotePlayerId, remotePlayerId, StringComparison.Ordinal));
+
+        return reservation is not null;
     }
 
     public ReadOnlyCollection<CompanionSeatDefinition> GetAvailableSeats()
@@ -98,5 +122,47 @@ public sealed class CompanionSeatRegistry
         return assignments
             .OrderBy(assignment => assignment.DisplayName, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    public IReadOnlyList<CompanionSeatOffer> BuildSeatOffers()
+    {
+        List<CompanionSeatOffer> offers = new();
+
+        foreach (CompanionSeatDefinition definition in _definitions.Values.OrderBy(definition => definition.DisplayName, StringComparer.Ordinal))
+        {
+            _reservations.TryGetValue(definition.SeatId, out CompanionSeatReservation? reservation);
+            offers.Add(
+                new CompanionSeatOffer(
+                    definition.SeatId,
+                    definition.HeroStringId,
+                    definition.DisplayName,
+                    definition.Role,
+                    definition.JoinScope,
+                    definition.AllowGuestControl,
+                    reservation is not null,
+                    reservation?.RemotePlayerId));
+        }
+
+        return offers;
+    }
+
+    public int ReleaseSeatsForRemotePlayer(string remotePlayerId)
+    {
+        string[] claimedSeatIds = _reservations
+            .Where(pair => string.Equals(pair.Value.RemotePlayerId, remotePlayerId, StringComparison.Ordinal))
+            .Select(pair => pair.Key)
+            .ToArray();
+
+        foreach (string seatId in claimedSeatIds)
+        {
+            _reservations.Remove(seatId);
+        }
+
+        return claimedSeatIds.Length;
+    }
+
+    public void ClearReservations()
+    {
+        _reservations.Clear();
     }
 }

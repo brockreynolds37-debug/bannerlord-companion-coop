@@ -12,6 +12,15 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Contracts\**\*.cs" />
+    <Compile Remove="Services\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BannerlordCompanionCoop.Core\BannerlordCompanionCoop.Core.csproj" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(BannerlordClientDir)' != ''">
     <Reference Include="TaleWorlds.Core">
       <HintPath>$(BannerlordClientDir)\TaleWorlds.Core.dll</HintPath>

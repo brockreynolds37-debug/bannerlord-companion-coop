@@ -76,6 +76,11 @@ It now also builds resolved mission assignments so the spawn/possession layer ca
 - remote player id
 - join scope
 
+It also now builds seat-offer snapshots, enforces:
+- one active seat per remote player
+- scope compatibility between seat and mission
+- cleanup of stale reservations when the host republishes seat definitions
+
 ### Mission coordinator
 
 `CompanionMissionCoordinator` is the current vertical-slice orchestrator. It sits between a campaign-backed host session and the mission registry. Right now it is intentionally version-agnostic and does four concrete things:
@@ -83,6 +88,8 @@ It now also builds resolved mission assignments so the spawn/possession layer ca
 - publishes companion seats
 - accepts claims
 - produces mission assignments
+
+It now also produces a transport-neutral `CompanionMissionPlan` snapshot so the actual Bannerlord network layer can later serialize one stable shape instead of querying several services ad hoc.
 
 This is the layer that should stay mostly testable even as the Bannerlord API glue shifts by game version.
 
@@ -102,4 +109,4 @@ On a Windows PC with Bannerlord installed:
 - compile this scaffold
 - trim any API mismatches
 - get a custom multiplayer mission to boot
-- hardcode one fake companion seat and prove the join flow
+- replace the debug in-memory plan handoff with real network messages

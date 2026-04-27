@@ -50,6 +50,7 @@ public sealed class CampaignHostSession
             heroProfile.HeroStringId,
             heroProfile.DisplayName,
             heroProfile.PreferredRole,
+            joinScope,
             allowGuestControl);
 
         _availableSeats.Add(seatDefinition);
@@ -63,7 +64,7 @@ public sealed class CampaignHostSession
         }
 
         CompanionSeatDefinition[] seats = _availableSeats
-            .Where(seat => seat.AllowGuestControl)
+            .Where(seat => seat.AllowGuestControl && seat.JoinScope.Allows(joinScope))
             .ToArray();
 
         return new MissionSeatSnapshot(ActiveSaveId, joinScope, seats);
