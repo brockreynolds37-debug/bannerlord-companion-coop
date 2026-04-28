@@ -2,20 +2,24 @@
 
 ## Immediate
 
-1. Add real assembly references on a Windows PC and fix API mismatches against the installed Bannerlord version.
-2. Confirm the module appears in the launcher and the custom multiplayer mode can boot.
-3. Replace the temporary debug claim flow with Bannerlord network messages:
-   - host seat list
-   - guest seat claim
-   - seat claim approval
-   - mission spawn possession assignment
-4. Replace the debug seat catalog with real companion extraction from the host campaign session.
-5. Hardcode one supported mission type first, ideally a battle mission.
-6. Exercise the new automation bridge on the Windows machine to prove `snapshot -> claim -> begin mission` without source edits.
+1. Confirm the module appears in the launcher and the custom multiplayer mode can boot.
+2. Run a real host-and-guest battle test for:
+   - server discovery from a live campaign battle
+   - mission-plan sync
+   - hotkey control request near a companion
+   - battle possession handoff
+3. Verify the new campaign battle injection path preserves the real campaign troop setup while the co-op seat host behavior initializes.
+4. Exercise the automation bridge on the Windows machine to prove `snapshot -> claim -> begin mission` without source edits.
+5. Decide whether the host needs to pre-open the Bannerlord multiplayer lobby once per boot, or whether the new auto-login path is reliable enough to keep invisible.
+6. Choose the first passenger-mode transport for the new campaign spectator snapshot:
+   - lobby metadata
+   - a lightweight waiting-state sync channel
+   - or a custom guest spectator screen bootstrap
+7. Decide whether the battle server name should carry a shortened location tag permanently or only as a temporary debugging aid.
 
 ## After bootstrapping
 
-1. Add a host-only campaign session manager that reads active companion heroes from the campaign.
+1. Render the new host snapshot in a read-only guest spectator view so players can watch the host move, enter settlements, and start encounters.
 2. Add a tiny host UI for toggling which companions are guest-playable.
 3. Add guest join restrictions by scene type:
    - battles

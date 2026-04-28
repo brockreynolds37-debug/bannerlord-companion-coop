@@ -1,9 +1,11 @@
 .vs/
 .vscode/
+.dotnet/
 bin/
 obj/
 *.user
 *.suo
 *.cache
 BannerlordAssemblyPaths.props
+dotnet-install.ps1
 

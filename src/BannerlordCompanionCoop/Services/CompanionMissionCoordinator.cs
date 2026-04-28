@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using BannerlordCompanionCoop.Contracts;
 
 namespace BannerlordCompanionCoop.Services;
@@ -28,16 +29,29 @@ public sealed class CompanionMissionCoordinator
 
     public bool HasActiveMission => _activeSnapshot is not null;
 
-    public void InitializeDebugMission(string saveId, CompanionMissionJoinScope joinScope)
+    public void InitializeMission(
+        string saveId,
+        IEnumerable<CompanionHeroProfile> companionProfiles,
+        CompanionMissionJoinScope joinScope)
     {
+        if (companionProfiles is null)
+        {
+            throw new ArgumentNullException(nameof(companionProfiles));
+        }
+
         _hostSession.Start(saveId);
 
-        foreach (CompanionHeroProfile profile in DebugSeatCatalog.CreateDefaultProfiles())
+        foreach (CompanionHeroProfile profile in companionProfiles.Where(IsSeatPublishable))
         {
-            _hostSession.PublishSeat(profile, joinScope);
+            _hostSession.PublishSeat(profile, CompanionMissionJoinScope.AllSupportedScenes);
         }
 
         PublishSeatsForMission(joinScope);
+    }
+
+    public void InitializeDebugMission(string saveId, CompanionMissionJoinScope joinScope)
+    {
+        InitializeMission(saveId, DebugSeatCatalog.CreateDefaultProfiles(), joinScope);
     }
 
     public void PublishSeatsForMission(CompanionMissionJoinScope joinScope)
@@ -117,5 +131,12 @@ public sealed class CompanionMissionCoordinator
     {
         _assignments.Clear();
         _assignments.AddRange(_seatRegistry.BuildAssignments());
+    }
+
+    private static bool IsSeatPublishable(CompanionHeroProfile profile)
+    {
+        return !string.IsNullOrWhiteSpace(profile.HeroStringId)
+            && !string.IsNullOrWhiteSpace(profile.CharacterStringId)
+            && !string.IsNullOrWhiteSpace(profile.DisplayName);
     }
 }

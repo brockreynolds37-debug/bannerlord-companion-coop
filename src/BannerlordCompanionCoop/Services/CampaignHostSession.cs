@@ -33,7 +33,7 @@ public sealed class CampaignHostSession
         _availableSeats.Add(seatDefinition);
     }
 
-    public void PublishSeat(CompanionHeroProfile heroProfile, CompanionMissionJoinScope joinScope)
+    public void PublishSeat(CompanionHeroProfile heroProfile, CompanionMissionJoinScope allowedJoinScopes)
     {
         if (ActiveSaveId is null)
         {
@@ -42,15 +42,15 @@ public sealed class CampaignHostSession
 
         _availableHeroes.Add(heroProfile);
 
-        string scopeSuffix = joinScope.ToString();
-        string seatId = $"{heroProfile.HeroStringId}:{scopeSuffix}".ToLowerInvariant();
-        bool allowGuestControl = !heroProfile.IsWounded;
+        string seatId = $"{heroProfile.HeroStringId}:{allowedJoinScopes.ToSeatScopeToken()}".ToLowerInvariant();
+        bool allowGuestControl = !heroProfile.IsWounded && allowedJoinScopes != CompanionMissionJoinScope.None;
         CompanionSeatDefinition seatDefinition = new(
             seatId,
             heroProfile.HeroStringId,
+            heroProfile.CharacterStringId,
             heroProfile.DisplayName,
             heroProfile.PreferredRole,
-            joinScope,
+            allowedJoinScopes,
             allowGuestControl);
 
         _availableSeats.Add(seatDefinition);
@@ -64,7 +64,7 @@ public sealed class CampaignHostSession
         }
 
         CompanionSeatDefinition[] seats = _availableSeats
-            .Where(seat => seat.AllowGuestControl && seat.JoinScope.Allows(joinScope))
+            .Where(seat => seat.AllowGuestControl && seat.AllowedJoinScopes.Allows(joinScope))
             .ToArray();
 
         return new MissionSeatSnapshot(ActiveSaveId, joinScope, seats);

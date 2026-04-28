@@ -1,4 +1,5 @@
 using BannerlordCompanionCoop.Missions;
+using BannerlordCompanionCoop.Networking;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 
@@ -12,6 +13,15 @@ public sealed class CompanionDropInGameMode : MultiplayerGameMode
 
     public override void JoinCustomGame(TaleWorlds.MountAndBlade.Diamond.JoinGameData joinGameData)
     {
+        LobbyGameStateCustomGameClient lobbyGameStateCustomGameClient = Game.Current.GameStateManager.CreateState<LobbyGameStateCustomGameClient>();
+        lobbyGameStateCustomGameClient.SetStartingParameters(
+            NetworkMain.GameClient,
+            joinGameData.GameServerProperties.Address,
+            joinGameData.GameServerProperties.Port,
+            joinGameData.PeerIndex,
+            joinGameData.SessionKey);
+
+        Game.Current.GameStateManager.PushState(lobbyGameStateCustomGameClient, 0);
     }
 
     public override void StartMultiplayerGame(string scene)
@@ -24,6 +34,8 @@ public sealed class CompanionDropInGameMode : MultiplayerGameMode
                 MissionLobbyComponent.CreateBehavior(),
                 new CompanionDropInMissionServer(),
                 new CompanionDropInMissionClient(),
+                new CompanionBattlePossessionBehavior(),
+                new CompanionMissionNetworkBehavior(),
                 new MultiplayerTimerComponent(),
                 new MissionLobbyEquipmentNetworkComponent(),
                 new MultiplayerTeamSelectComponent(),

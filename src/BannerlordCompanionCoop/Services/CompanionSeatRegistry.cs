@@ -52,14 +52,25 @@ public sealed class CompanionSeatRegistry
             return false;
         }
 
-        if (!definition.AllowGuestControl || !definition.JoinScope.Allows(joinScope) || _reservations.ContainsKey(seatId))
+        if (!definition.AllowGuestControl || !definition.AllowedJoinScopes.Allows(joinScope))
         {
             return false;
         }
 
-        if (TryGetReservationForRemotePlayer(remotePlayerId, out _))
+        if (_reservations.TryGetValue(seatId, out CompanionSeatReservation? existingSeatReservation))
         {
-            return false;
+            if (!string.Equals(existingSeatReservation.RemotePlayerId, remotePlayerId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            _reservations[seatId] = new CompanionSeatReservation(seatId, remotePlayerId, joinScope);
+            return true;
+        }
+
+        if (TryGetReservationForRemotePlayer(remotePlayerId, out CompanionSeatReservation? existingPlayerReservation))
+        {
+            _reservations.Remove(existingPlayerReservation!.SeatId);
         }
 
         _reservations[seatId] = new CompanionSeatReservation(seatId, remotePlayerId, joinScope);
@@ -114,6 +125,7 @@ public sealed class CompanionSeatRegistry
                 new CompanionSeatAssignment(
                     definition.SeatId,
                     definition.HeroStringId,
+                    definition.CharacterStringId,
                     definition.DisplayName,
                     reservation.RemotePlayerId,
                     reservation.JoinScope));
@@ -135,9 +147,10 @@ public sealed class CompanionSeatRegistry
                 new CompanionSeatOffer(
                     definition.SeatId,
                     definition.HeroStringId,
+                    definition.CharacterStringId,
                     definition.DisplayName,
                     definition.Role,
-                    definition.JoinScope,
+                    definition.AllowedJoinScopes,
                     definition.AllowGuestControl,
                     reservation is not null,
                     reservation?.RemotePlayerId));

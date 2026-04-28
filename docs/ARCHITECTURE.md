@@ -21,6 +21,8 @@ Trying to make every connected player a full campaign controller creates immedia
 
 Restricting guest authority to mission participation cuts through most of that. It still leaves hard work, but it is the smallest version that can become playable.
 
+The spectator side of that design is intentionally lighter: guests do not become second campaign actors, but they should still be able to watch the host's campaign state in a passive "passenger seat" mode before the next mission starts.
+
 ## First vertical slice
 
 1. Host starts a campaign-backed co-op session.
@@ -36,6 +38,8 @@ Restricting guest authority to mission participation cuts through most of that. 
 
 `BannerlordCompanionCoopSubModule` registers the custom multiplayer mission mode and loads multiplayer strings.
 
+It now also polls the host's live campaign state while a campaign is running and stores a read-only spectator snapshot for future guest transport and UI work.
+
 ### Game mode
 
 `CompanionDropInGameMode` creates a mission with:
@@ -43,7 +47,7 @@ Restricting guest authority to mission participation cuts through most of that. 
 - custom server behavior
 - custom client behavior
 
-This is the first place likely to need version-specific cleanup once tested against real Bannerlord DLLs.
+Its `JoinCustomGame` path now mirrors Bannerlord's native mission-based multiplayer flow by pushing a custom-game lobby state and letting the engine call back into `StartMultiplayerGame` when the mission should load.
 
 ### Server mission behavior
 
@@ -54,10 +58,19 @@ This is the first place likely to need version-specific cleanup once tested agai
 - push spawn/possession state to clients
 
 In the current repo pass it already uses a `CompanionMissionCoordinator` with:
-- a hardcoded debug save id
-- a small debug companion catalog
+- live companion extraction from the host's current campaign party when available
+- a debug fallback roster when no campaign context is available
 - seat publication into the mission registry
 - a controllable automation bridge instead of a hardcoded fake guest claim
+
+For real campaign battles, the submodule now injects a lighter `CompanionCampaignMissionHostBehavior` directly into supported campaign missions. That preserves the campaign's native troop/scene setup while still giving the co-op layer a host seat plan to work with.
+
+`CompanionCampaignCustomServerRegistrationBehavior` now sits beside that host behavior for campaign battles. It is responsible for:
+- initializing Bannerlord multiplayer services when needed
+- starting a player-hosted multiplayer session on top of the live campaign battle
+- registering the battle as a `CompanionDropIn` custom game
+- updating the published server metadata as companion seat capacity changes
+- tearing the temporary hosted session down when the mission ends
 
 ### Client mission behavior
 
@@ -108,11 +121,23 @@ This is the seam that can later be driven by:
 - a temporary debug hook
 - a future GABS adapter
 
+### Campaign spectator tracker
+
+`CompanionCampaignSpectatorTracker` is the current passenger-mode foundation. It polls host campaign state and builds a transport-neutral `CompanionCampaignSpectatorSnapshot` with:
+- current summary text
+- settlement and target context
+- gold / party size / food runway
+- map position
+- a short recent-event log
+
+This gives the next UI/networking pass something stable to render without forcing a full second campaign-map implementation.
+
+`CompanionCampaignSpectatorSession` is the guest-side mirror for that data. It does not render anything yet, but it is the stable place for future transport code to apply remote snapshots before a guest-facing screen consumes them.
+
 ## Deferred items
 
-- Campaign hero lookup and persistence
-- Network message contracts backed by Bannerlord compression/serialization
 - Host UI for choosing which companions are guest-playable
+- Guest transport and rendering for the campaign spectator snapshot
 - Filtering of which mission types allow guest participation
 - Possession handoff if a companion is wounded, captured, or absent
 - Recovery if a guest disconnects mid-mission
@@ -123,6 +148,6 @@ This is the seam that can later be driven by:
 On a Windows PC with Bannerlord installed:
 - reference the real TaleWorlds assemblies
 - compile this scaffold
-- trim any API mismatches
-- get a custom multiplayer mission to boot
-- replace the debug in-memory plan handoff with real network messages
+- boot one hosted guest flow and verify `discover -> join -> claim -> assignment -> possession`
+- confirm campaign battles can register and tear down cleanly without breaking the native troop setup
+- decide whether the pre-battle spectator feed should ride over lobby metadata, a lightweight guest sync channel, or a custom waiting-state transport

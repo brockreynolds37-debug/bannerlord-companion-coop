@@ -5,6 +5,7 @@
   <ModuleCategory value="Multiplayer" />
   <DependedModules>
     <DependedModule Id="Native" Optional="false" />
+    <DependedModule Id="Multiplayer" Optional="false" />
     <DependedModule Id="SandboxCore" Optional="true" />
     <DependedModule Id="Sandbox" Optional="true" />
     <DependedModule Id="StoryMode" Optional="true" />

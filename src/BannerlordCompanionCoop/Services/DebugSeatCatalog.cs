@@ -9,9 +9,9 @@ public static class DebugSeatCatalog
     {
         return new[]
         {
-            new CompanionHeroProfile("companion_alayen", "Alayen", CompanionMissionRole.Fighter, 18, false),
-            new CompanionHeroProfile("companion_ymira", "Ymira", CompanionMissionRole.Surgeon, 14, false),
-            new CompanionHeroProfile("companion_baheshtur", "Baheshtur", CompanionMissionRole.Scout, 16, true),
+            new CompanionHeroProfile("imperial_infantryman", "imperial_infantryman", "Imperial Infantryman", CompanionMissionRole.Fighter, 18, false),
+            new CompanionHeroProfile("khuzait_spearman", "khuzait_spearman", "Khuzait Spearman", CompanionMissionRole.Scout, 14, false),
+            new CompanionHeroProfile("sturgian_warrior", "sturgian_warrior", "Sturgian Warrior", CompanionMissionRole.Surgeon, 16, true),
         };
     }
 }

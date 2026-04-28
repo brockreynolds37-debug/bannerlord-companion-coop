@@ -1,10 +1,14 @@
+using System;
+using System.Collections.Generic;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Integration;
+using BannerlordCompanionCoop.Networking;
 using BannerlordCompanionCoop.Services;
 using TaleWorlds.MountAndBlade;
 
 namespace BannerlordCompanionCoop.Missions;
 
-public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBase
+public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBase, ICompanionMissionHost
 {
     private readonly CampaignHostSession _hostSession = new();
     private readonly CompanionSeatRegistry _seatRegistry = new();
@@ -12,13 +16,20 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     private CompanionAutomationBridge? _automationBridge;
     private CompanionMissionPlan? _latestPlan;
 
+    public event Action<CompanionMissionPlan?>? MissionPlanChanged;
+
     public override void OnBehaviorInitialize()
     {
         base.OnBehaviorInitialize();
 
+        if (!GameNetwork.IsServer)
+        {
+            return;
+        }
+
         _coordinator = new CompanionMissionCoordinator(_hostSession, _seatRegistry);
         _automationBridge = new CompanionAutomationBridge(_coordinator);
-        _coordinator.InitializeDebugMission("debug_sandbox_save", CompanionMissionJoinScope.Battles);
+        InitializeMissionRoster();
         RefreshPlan();
     }
 
@@ -31,6 +42,8 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     public string DebugSummary => _coordinator?.BuildDebugSummary() ?? "state=uninitialized";
 
     public CompanionMissionPlan? LatestPlan => _latestPlan;
+
+    public CompanionMissionJoinScope CurrentJoinScope => _latestPlan?.JoinScope ?? CompanionMissionJoinScope.None;
 
     public override bool IsGameModeUsingOpposingTeams => false;
 
@@ -94,6 +107,57 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         return claimed;
     }
 
+    public bool TryClaimSeatForPeer(NetworkCommunicator networkPeer, string seatId, out string message)
+    {
+        if (_coordinator is null)
+        {
+            message = "Mission server is not initialized.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(seatId))
+        {
+            message = "Seat claim requires a seat id.";
+            return false;
+        }
+
+        if (CurrentJoinScope == CompanionMissionJoinScope.None)
+        {
+            message = "Mission seats are not currently published.";
+            return false;
+        }
+
+        string remotePlayerId = CompanionRemotePlayerId.FromNetworkPeer(networkPeer);
+        bool claimed = _coordinator.TryClaimSeat(
+            new CompanionSeatClaim(seatId, remotePlayerId, CurrentJoinScope));
+
+        if (claimed)
+        {
+            RefreshPlan();
+            message = $"Seat '{seatId}' claimed for remote player '{remotePlayerId}'.";
+            return true;
+        }
+
+        message = $"Seat '{seatId}' could not be claimed for remote player '{remotePlayerId}'.";
+        return false;
+    }
+
+    public void EnsureMissionStarted()
+    {
+        if (_coordinator is null)
+        {
+            return;
+        }
+
+        if (_coordinator.State == CompanionMissionState.MissionLive || _coordinator.State == CompanionMissionState.MissionEnded)
+        {
+            return;
+        }
+
+        _coordinator.BeginMission();
+        RefreshPlan();
+    }
+
     public int ReleaseRemotePlayer(string remotePlayerId)
     {
         if (_coordinator is null)
@@ -116,9 +180,29 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         if (_coordinator is null)
         {
             _latestPlan = null;
+            MissionPlanChanged?.Invoke(_latestPlan);
             return;
         }
 
         _latestPlan = _coordinator.TryBuildMissionPlan();
+        MissionPlanChanged?.Invoke(_latestPlan);
+    }
+
+    private void InitializeMissionRoster()
+    {
+        if (_coordinator is null)
+        {
+            return;
+        }
+
+        if (CampaignCompanionRosterProvider.TryCreateMissionSeed(
+            out string saveId,
+            out IReadOnlyList<CompanionHeroProfile> companionProfiles))
+        {
+            _coordinator.InitializeMission(saveId, companionProfiles, CompanionMissionJoinScope.Battles);
+            return;
+        }
+
+        _coordinator.InitializeDebugMission("debug_sandbox_save", CompanionMissionJoinScope.Battles);
     }
 }
