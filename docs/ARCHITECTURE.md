@@ -57,7 +57,7 @@ In the current repo pass it already uses a `CompanionMissionCoordinator` with:
 - a hardcoded debug save id
 - a small debug companion catalog
 - seat publication into the mission registry
-- one temporary fake guest claim to prove the state flow
+- a controllable automation bridge instead of a hardcoded fake guest claim
 
 ### Client mission behavior
 
@@ -93,6 +93,21 @@ It now also produces a transport-neutral `CompanionMissionPlan` snapshot so the 
 
 This is the layer that should stay mostly testable even as the Bannerlord API glue shifts by game version.
 
+### Automation bridge
+
+`CompanionAutomationBridge` is a small command/snapshot layer for AI-assisted tooling and runtime debug control.
+
+It can:
+- inspect the active mission plan
+- claim or release seats
+- advance mission lifecycle state
+- serialize snapshots and command results as JSON
+
+This is the seam that can later be driven by:
+- an in-game scripting mod
+- a temporary debug hook
+- a future GABS adapter
+
 ## Deferred items
 
 - Campaign hero lookup and persistence
@@ -101,6 +116,7 @@ This is the layer that should stay mostly testable even as the Bannerlord API gl
 - Filtering of which mission types allow guest participation
 - Possession handoff if a companion is wounded, captured, or absent
 - Recovery if a guest disconnects mid-mission
+- External transport for automation commands instead of direct server method calls
 
 ## Practical next step
 

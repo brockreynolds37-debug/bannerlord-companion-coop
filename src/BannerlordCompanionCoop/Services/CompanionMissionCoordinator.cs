@@ -20,6 +20,14 @@ public sealed class CompanionMissionCoordinator
 
     public ReadOnlyCollection<CompanionSeatAssignment> Assignments => _assignments.AsReadOnly();
 
+    public string? ActiveSaveId => _activeSnapshot?.SaveId ?? _hostSession.ActiveSaveId;
+
+    public CompanionMissionJoinScope ActiveJoinScope => _activeSnapshot?.JoinScope ?? CompanionMissionJoinScope.None;
+
+    public CompanionMissionState State => _seatRegistry.State;
+
+    public bool HasActiveMission => _activeSnapshot is not null;
+
     public void InitializeDebugMission(string saveId, CompanionMissionJoinScope joinScope)
     {
         _hostSession.Start(saveId);
@@ -76,6 +84,11 @@ public sealed class CompanionMissionCoordinator
             _seatRegistry.State,
             _seatRegistry.BuildSeatOffers(),
             Assignments);
+    }
+
+    public CompanionMissionPlan? TryBuildMissionPlan()
+    {
+        return _activeSnapshot is null ? null : BuildMissionPlan();
     }
 
     public int ReleaseRemotePlayer(string remotePlayerId)

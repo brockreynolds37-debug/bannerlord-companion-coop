@@ -11,6 +11,7 @@
    - mission spawn possession assignment
 4. Replace the debug seat catalog with real companion extraction from the host campaign session.
 5. Hardcode one supported mission type first, ideally a battle mission.
+6. Exercise the new automation bridge on the Windows machine to prove `snapshot -> claim -> begin mission` without source edits.
 
 ## After bootstrapping
 
@@ -21,6 +22,7 @@
    - town visits
    - hideouts and raids
 4. Handle disconnect recovery and fallback AI control.
+5. Decide whether to keep the automation bridge internal or hang a fuller GABS-style adapter off it.
 
 ## Not for the first pass
 

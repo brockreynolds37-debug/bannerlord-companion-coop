@@ -9,6 +9,7 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     private readonly CampaignHostSession _hostSession = new();
     private readonly CompanionSeatRegistry _seatRegistry = new();
     private CompanionMissionCoordinator? _coordinator;
+    private CompanionAutomationBridge? _automationBridge;
     private CompanionMissionPlan? _latestPlan;
 
     public override void OnBehaviorInitialize()
@@ -16,22 +17,16 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         base.OnBehaviorInitialize();
 
         _coordinator = new CompanionMissionCoordinator(_hostSession, _seatRegistry);
+        _automationBridge = new CompanionAutomationBridge(_coordinator);
         _coordinator.InitializeDebugMission("debug_sandbox_save", CompanionMissionJoinScope.Battles);
-
-        // Temporary hardcoded claim so the first PC pass can prove seat flow
-        // before real network messages exist.
-        _coordinator.TryClaimSeat(
-            new CompanionSeatClaim(
-                "companion_alayen:battles",
-                "debug_remote_player_1",
-                CompanionMissionJoinScope.Battles));
-        _coordinator.BeginMission();
         RefreshPlan();
     }
 
     public CompanionSeatRegistry SeatRegistry => _seatRegistry;
 
     public CampaignHostSession HostSession => _hostSession;
+
+    public CompanionAutomationBridge? AutomationBridge => _automationBridge;
 
     public string DebugSummary => _coordinator?.BuildDebugSummary() ?? "state=uninitialized";
 
@@ -44,6 +39,42 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
     public override MultiplayerGameType GetMissionType()
     {
         return MultiplayerGameType.Battle;
+    }
+
+    public CompanionAutomationSnapshot? BuildAutomationSnapshot()
+    {
+        return _automationBridge?.BuildSnapshot();
+    }
+
+    public string? BuildAutomationSnapshotJson()
+    {
+        CompanionAutomationSnapshot? snapshot = BuildAutomationSnapshot();
+        return snapshot is null ? null : CompanionAutomationProtocol.SerializeSnapshot(snapshot);
+    }
+
+    public CompanionAutomationResult? ExecuteAutomationCommand(CompanionAutomationCommand command)
+    {
+        if (_automationBridge is null)
+        {
+            return null;
+        }
+
+        CompanionAutomationResult result = _automationBridge.Execute(command);
+        RefreshPlan();
+        return result;
+    }
+
+    public string? ExecuteAutomationCommandJson(string commandJson)
+    {
+        if (_automationBridge is null)
+        {
+            return null;
+        }
+
+        CompanionAutomationCommand command = CompanionAutomationProtocol.DeserializeCommand(commandJson);
+        CompanionAutomationResult result = _automationBridge.Execute(command);
+        RefreshPlan();
+        return CompanionAutomationProtocol.SerializeResult(result);
     }
 
     public bool TryClaimSeatForRemotePlayer(CompanionSeatClaim claim)
@@ -88,6 +119,6 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
             return;
         }
 
-        _latestPlan = _coordinator.BuildMissionPlan();
+        _latestPlan = _coordinator.TryBuildMissionPlan();
     }
 }
