@@ -43,6 +43,9 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
 
     public CompanionMissionPlan? LatestPlan => _latestPlan;
 
+    public CompanionCampaignSpectatorSnapshot? LatestCampaignSpectatorSnapshot =>
+        BannerlordCompanionCoopSubModule.LatestCampaignSpectatorSnapshot;
+
     public CompanionMissionJoinScope CurrentJoinScope => _latestPlan?.JoinScope ?? CompanionMissionJoinScope.None;
 
     public override bool IsGameModeUsingOpposingTeams => false;

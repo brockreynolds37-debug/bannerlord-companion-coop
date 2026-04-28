@@ -33,6 +33,11 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
             _host.MissionPlanChanged -= HandleServerMissionPlanChanged;
         }
 
+        if (GameNetwork.IsClient)
+        {
+            BannerlordCompanionCoopSubModule.ClearRemoteCampaignSpectatorSnapshot();
+        }
+
         base.OnRemoveBehavior();
     }
 
@@ -41,6 +46,7 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
         if (GameNetwork.IsClient)
         {
             registerer.Register<SyncCompanionMissionPlanMessage>(HandleServerEventSyncCompanionMissionPlan);
+            registerer.Register<SyncCompanionCampaignSpectatorSnapshotMessage>(HandleServerEventSyncCompanionCampaignSpectatorSnapshot);
             registerer.Register<CompanionSeatClaimResultMessage>(HandleServerEventCompanionSeatClaimResult);
         }
         else if (GameNetwork.IsServer)
@@ -69,6 +75,7 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
             return;
         }
 
+        SendSpectatorSnapshotToPeer(networkPeer, _host.LatestCampaignSpectatorSnapshot);
         SendMissionPlanToPeer(networkPeer, _host.LatestPlan);
     }
 
@@ -97,6 +104,7 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
                 continue;
             }
 
+            SendSpectatorSnapshotToPeer(networkPeer, _host?.LatestCampaignSpectatorSnapshot);
             SendMissionPlanToPeer(networkPeer, plan);
         }
     }
@@ -131,6 +139,24 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
         _client.ApplyMissionPlan(message.ToPlan(), remotePlayerId);
     }
 
+    private void HandleServerEventSyncCompanionCampaignSpectatorSnapshot(
+        SyncCompanionCampaignSpectatorSnapshotMessage message)
+    {
+        if (_client is null)
+        {
+            return;
+        }
+
+        CompanionCampaignSpectatorSnapshot? snapshot = message.ToSnapshot();
+        if (snapshot is null)
+        {
+            _client.ClearCampaignSpectatorSnapshot();
+            return;
+        }
+
+        _client.ApplyCampaignSpectatorSnapshot(snapshot);
+    }
+
     private void HandleServerEventCompanionSeatClaimResult(CompanionSeatClaimResultMessage message)
     {
         _client?.ApplySeatClaimResult(message.SeatId, message.Success, message.Message);
@@ -140,6 +166,15 @@ public sealed class CompanionMissionNetworkBehavior : MissionNetwork
     {
         GameNetwork.BeginModuleEventAsServer(networkPeer);
         GameNetwork.WriteMessage(new SyncCompanionMissionPlanMessage(plan));
+        GameNetwork.EndModuleEventAsServer();
+    }
+
+    private static void SendSpectatorSnapshotToPeer(
+        NetworkCommunicator networkPeer,
+        CompanionCampaignSpectatorSnapshot? snapshot)
+    {
+        GameNetwork.BeginModuleEventAsServer(networkPeer);
+        GameNetwork.WriteMessage(new SyncCompanionCampaignSpectatorSnapshotMessage(snapshot));
         GameNetwork.EndModuleEventAsServer();
     }
 }

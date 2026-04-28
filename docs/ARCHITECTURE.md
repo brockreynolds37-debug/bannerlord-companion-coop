@@ -79,6 +79,11 @@ For real campaign battles, the submodule now injects a lighter `CompanionCampaig
 - submit seat claims
 - switch local control onto the assigned companion agent
 
+It now also applies the latest host campaign spectator snapshot when the battle session syncs, so the guest gets immediate context like:
+- where the host was
+- whether they were entering a settlement or encounter
+- the most recent passenger-mode event line
+
 ### Seat registry
 
 `CompanionSeatRegistry` is pure C# state used to keep mission seat definitions and reservations separate from Bannerlord API details.
@@ -132,12 +137,12 @@ This is the seam that can later be driven by:
 
 This gives the next UI/networking pass something stable to render without forcing a full second campaign-map implementation.
 
-`CompanionCampaignSpectatorSession` is the guest-side mirror for that data. It does not render anything yet, but it is the stable place for future transport code to apply remote snapshots before a guest-facing screen consumes them.
+`CompanionCampaignSpectatorSession` is the guest-side mirror for that data. It now receives the last host snapshot during battle mission sync, but it still does not render a dedicated waiting-state UI yet.
 
 ## Deferred items
 
 - Host UI for choosing which companions are guest-playable
-- Guest transport and rendering for the campaign spectator snapshot
+- Continuous guest transport and rendering for the campaign spectator snapshot before battle join
 - Filtering of which mission types allow guest participation
 - Possession handoff if a companion is wounded, captured, or absent
 - Recovery if a guest disconnects mid-mission
@@ -150,4 +155,5 @@ On a Windows PC with Bannerlord installed:
 - compile this scaffold
 - boot one hosted guest flow and verify `discover -> join -> claim -> assignment -> possession`
 - confirm campaign battles can register and tear down cleanly without breaking the native troop setup
+- verify the new battle-sync spectator context arrives for the guest as expected
 - decide whether the pre-battle spectator feed should ride over lobby metadata, a lightweight guest sync channel, or a custom waiting-state transport

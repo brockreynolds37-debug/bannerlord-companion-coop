@@ -31,7 +31,7 @@ This repo is a starter scaffold. It establishes:
 - A battle-only possession path that hands a claimed companion agent to a guest peer
 - A first-pass battle hotkey flow that lets a guest look near a companion and press `O` to request control
 - A host-side campaign spectator snapshot with a short event log for future passenger-mode UI
-- A guest-side spectator session model that can consume remote campaign snapshots when pre-battle transport is wired
+- A guest-side spectator session model that now receives the host's last campaign snapshot when the battle mission syncs
 - Live host-campaign companion extraction when the mission is launched from a campaign context
 - Battle-only campaign mission injection so real campaign fights can host co-op seat state
 - Campaign battle registration that starts a player-hosted session and publishes the fight to Bannerlord's custom server list
@@ -39,7 +39,8 @@ This repo is a starter scaffold. It establishes:
 - Design notes for the next implementation passes
 
 It does not yet implement:
-- A guest-facing read-only campaign spectator view or transport for those snapshots
+- A guest-facing read-only campaign spectator waiting screen before battle join
+- Continuous pre-battle transport for spectator snapshots while the host is still riding around on the map
 - Reliable possession flows for town scenes, hideouts, and raids
 - Scene filtering and join flow UI
 - Full save/persistence recovery around disconnects and mission end

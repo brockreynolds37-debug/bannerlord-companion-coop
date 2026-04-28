@@ -10,6 +10,8 @@ public interface ICompanionMissionHost
 
     CompanionMissionPlan? LatestPlan { get; }
 
+    CompanionCampaignSpectatorSnapshot? LatestCampaignSpectatorSnapshot { get; }
+
     CompanionMissionJoinScope CurrentJoinScope { get; }
 
     void EnsureMissionStarted();

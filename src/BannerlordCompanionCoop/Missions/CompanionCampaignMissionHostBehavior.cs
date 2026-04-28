@@ -19,6 +19,9 @@ public sealed class CompanionCampaignMissionHostBehavior : MissionLogic, ICompan
 
     public CompanionMissionPlan? LatestPlan => _latestPlan;
 
+    public CompanionCampaignSpectatorSnapshot? LatestCampaignSpectatorSnapshot =>
+        BannerlordCompanionCoopSubModule.LatestCampaignSpectatorSnapshot;
+
     public CompanionMissionJoinScope CurrentJoinScope => _latestPlan?.JoinScope ?? CompanionMissionJoinScope.None;
 
     public override void OnBehaviorInitialize()

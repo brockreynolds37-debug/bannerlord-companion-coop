@@ -17,6 +17,8 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     private const InputKey RequestCompanionControlHotKey = InputKey.O;
     private readonly List<CompanionSeatOffer> _seatOffers = new();
     private bool _hasShownBattleHint;
+    private string? _lastSpectatorEventMessage;
+    private string? _lastSpectatorSummaryMessage;
 
     public string? RequestedSeatId { get; private set; }
 
@@ -33,6 +35,8 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     public CompanionMissionJoinScope ActiveJoinScope { get; private set; }
 
     public CompanionMissionState MissionState { get; private set; }
+
+    public CompanionCampaignSpectatorSnapshot? CampaignSpectatorSnapshot { get; private set; }
 
     public ReadOnlyCollection<CompanionSeatOffer> SeatOffers => _seatOffers.AsReadOnly();
 
@@ -130,6 +134,21 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         {
             RequestedSeatId = null;
         }
+    }
+
+    public void ApplyCampaignSpectatorSnapshot(CompanionCampaignSpectatorSnapshot snapshot)
+    {
+        CampaignSpectatorSnapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
+        BannerlordCompanionCoopSubModule.ApplyRemoteCampaignSpectatorSnapshot(snapshot);
+        ShowCampaignSpectatorContext(snapshot);
+    }
+
+    public void ClearCampaignSpectatorSnapshot()
+    {
+        CampaignSpectatorSnapshot = null;
+        _lastSpectatorEventMessage = null;
+        _lastSpectatorSummaryMessage = null;
+        BannerlordCompanionCoopSubModule.ClearRemoteCampaignSpectatorSnapshot();
     }
 
     public override void OnMissionTick(float dt)
@@ -295,6 +314,29 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         return !string.IsNullOrWhiteSpace(left)
             && !string.IsNullOrWhiteSpace(right)
             && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ShowCampaignSpectatorContext(CompanionCampaignSpectatorSnapshot snapshot)
+    {
+        string summaryMessage = $"Host campaign: {snapshot.Summary}";
+        if (!string.Equals(_lastSpectatorSummaryMessage, summaryMessage, StringComparison.Ordinal))
+        {
+            _lastSpectatorSummaryMessage = summaryMessage;
+            ShowStatus(summaryMessage);
+        }
+
+        string? latestEvent = snapshot.RecentEvents.Count > 0
+            ? snapshot.RecentEvents[snapshot.RecentEvents.Count - 1]
+            : null;
+
+        if (string.IsNullOrWhiteSpace(latestEvent)
+            || string.Equals(_lastSpectatorEventMessage, latestEvent, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastSpectatorEventMessage = latestEvent;
+        ShowStatus(latestEvent);
     }
 
     private static void ShowStatus(string message)
