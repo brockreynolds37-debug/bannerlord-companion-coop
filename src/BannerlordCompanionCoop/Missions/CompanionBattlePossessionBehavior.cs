@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Diagnostics;
 using BannerlordCompanionCoop.Integration;
 using BannerlordCompanionCoop.Networking;
 using TaleWorlds.CampaignSystem;
@@ -16,12 +17,16 @@ namespace BannerlordCompanionCoop.Missions;
 public sealed class CompanionBattlePossessionBehavior : MissionLogic
 {
     private readonly Dictionary<string, int> _agentIndexBySeatId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _lastSeatStatusBySeatId = new(StringComparer.Ordinal);
     private ICompanionMissionHost? _host;
 
     public override void OnBehaviorInitialize()
     {
         base.OnBehaviorInitialize();
         _host = Mission.MissionBehaviors.OfType<ICompanionMissionHost>().FirstOrDefault();
+        CompanionModLogger.Info(
+            "Possession",
+            $"Initialized battle possession behavior for mission '{Mission.SceneName}' (hostFound={_host is not null}).");
     }
 
     public override void OnMissionTick(float dt)
@@ -53,6 +58,10 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
             MissionPeer? missionPeer = networkPeer?.GetComponent<MissionPeer>();
             if (networkPeer is null || missionPeer is null || networkPeer.IsServerPeer)
             {
+                LogSeatStatusIfChanged(
+                    assignment.SeatId,
+                    "waiting-for-peer",
+                    $"Seat '{assignment.SeatId}' for '{assignment.DisplayName}' is waiting for a valid remote peer '{assignment.RemotePlayerId}'.");
                 continue;
             }
 
@@ -60,14 +69,30 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
             {
                 Agent boundAgent = controlledAgent!;
                 _agentIndexBySeatId[assignment.SeatId] = boundAgent.Index;
+                LogSeatStatusIfChanged(
+                    assignment.SeatId,
+                    $"controlled:{boundAgent.Index}",
+                    $"Seat '{assignment.SeatId}' is already controlled by peer '{assignment.RemotePlayerId}' on agent {boundAgent.Index}.");
                 host.EnsureMissionStarted();
                 continue;
             }
 
             Agent? candidate = FindUnclaimedMatchingAgent(assignment);
+            if (candidate is not null)
+            {
+                LogSeatStatusIfChanged(
+                    assignment.SeatId,
+                    $"candidate:{candidate.Index}",
+                    $"Found existing agent {candidate.Index} for seat '{assignment.SeatId}' ({assignment.DisplayName}).");
+            }
+
             candidate ??= SpawnFallbackCompanionCandidate(assignment, missionPeer);
             if (candidate is null || candidate.Formation is null)
             {
+                LogSeatStatusIfChanged(
+                    assignment.SeatId,
+                    "no-agent-candidate",
+                    $"Could not find or spawn an agent candidate for seat '{assignment.SeatId}' ({assignment.DisplayName}).");
                 continue;
             }
 
@@ -79,10 +104,18 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
             Agent? replacedAgent = Mission.ReplaceBotWithPlayer(candidate, missionPeer);
             if (replacedAgent is null)
             {
+                LogSeatStatusIfChanged(
+                    assignment.SeatId,
+                    $"replace-failed:{candidate.Index}",
+                    $"Mission.ReplaceBotWithPlayer returned null for seat '{assignment.SeatId}' candidate agent {candidate.Index}.");
                 continue;
             }
 
             _agentIndexBySeatId[assignment.SeatId] = replacedAgent.Index;
+            LogSeatStatusIfChanged(
+                assignment.SeatId,
+                $"replaced:{replacedAgent.Index}",
+                $"Assigned peer '{assignment.RemotePlayerId}' to seat '{assignment.SeatId}' using agent {replacedAgent.Index}.");
             host.EnsureMissionStarted();
         }
 
@@ -93,6 +126,8 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
             if (!activeSeatIds.Contains(seatId))
             {
                 _agentIndexBySeatId.Remove(seatId);
+                _lastSeatStatusBySeatId.Remove(seatId);
+                CompanionModLogger.Info("Possession", $"Removed stale tracked seat '{seatId}' from possession state.");
             }
         }
     }
@@ -149,6 +184,10 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
         Team? team = missionPeer.Team ?? Mission.AttackerTeam ?? Mission.DefenderTeam;
         if (character is null || team is null)
         {
+            LogSeatStatusIfChanged(
+                assignment.SeatId,
+                "fallback-unavailable",
+                $"Could not resolve fallback character/team for seat '{assignment.SeatId}' ({assignment.DisplayName}).");
             return null;
         }
 
@@ -173,7 +212,12 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
             .InitialPosition(spawnPosition.GetGroundVec3())
             .InitialDirection(spawnDirection.Normalized());
 
-        return Mission.SpawnAgent(buildData);
+        Agent spawnedAgent = Mission.SpawnAgent(buildData);
+        LogSeatStatusIfChanged(
+            assignment.SeatId,
+            $"spawned-fallback:{spawnedAgent.Index}",
+            $"Spawned fallback agent {spawnedAgent.Index} for seat '{assignment.SeatId}' using character '{character.StringId}'.");
+        return spawnedAgent;
     }
 
     private NetworkCommunicator? FindNetworkPeer(string remotePlayerId)
@@ -250,5 +294,17 @@ public sealed class CompanionBattlePossessionBehavior : MissionLogic
         return !string.IsNullOrWhiteSpace(left)
             && !string.IsNullOrWhiteSpace(right)
             && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void LogSeatStatusIfChanged(string seatId, string statusKey, string message)
+    {
+        if (_lastSeatStatusBySeatId.TryGetValue(seatId, out string? existingStatusKey)
+            && string.Equals(existingStatusKey, statusKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastSeatStatusBySeatId[seatId] = statusKey;
+        CompanionModLogger.Info("Possession", message);
     }
 }

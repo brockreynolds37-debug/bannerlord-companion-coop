@@ -14,6 +14,7 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
 
     public SyncCompanionMissionPlanMessage()
     {
+        MissionInstanceId = string.Empty;
         SaveId = string.Empty;
         _seatOffers = new List<CompanionSeatOffer>();
         _assignments = new List<CompanionSeatAssignment>();
@@ -21,12 +22,15 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
 
     public SyncCompanionMissionPlanMessage(CompanionMissionPlan plan)
     {
+        MissionInstanceId = plan.MissionInstanceId;
         SaveId = plan.SaveId;
         JoinScope = plan.JoinScope;
         State = plan.State;
         _seatOffers = new List<CompanionSeatOffer>(plan.SeatOffers);
         _assignments = new List<CompanionSeatAssignment>(plan.Assignments);
     }
+
+    public string MissionInstanceId { get; private set; }
 
     public string SaveId { get; private set; }
 
@@ -41,6 +45,7 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
     public CompanionMissionPlan ToPlan()
     {
         return new CompanionMissionPlan(
+            MissionInstanceId,
             SaveId,
             JoinScope,
             State,
@@ -51,6 +56,7 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
     protected override bool OnRead()
     {
         bool bufferReadValid = true;
+        MissionInstanceId = ReadStringFromPacket(ref bufferReadValid);
         SaveId = ReadStringFromPacket(ref bufferReadValid);
         JoinScope = (CompanionMissionJoinScope)ReadIntFromPacket(CompressionBasic.DebugIntNonCompressionInfo, ref bufferReadValid);
         State = (CompanionMissionState)ReadIntFromPacket(CompressionBasic.DebugIntNonCompressionInfo, ref bufferReadValid);
@@ -76,6 +82,7 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
 
     protected override void OnWrite()
     {
+        WriteStringToPacket(MissionInstanceId);
         WriteStringToPacket(SaveId);
         WriteIntToPacket((int)JoinScope, CompressionBasic.DebugIntNonCompressionInfo);
         WriteIntToPacket((int)State, CompressionBasic.DebugIntNonCompressionInfo);
@@ -100,7 +107,7 @@ public sealed class SyncCompanionMissionPlanMessage : GameNetworkMessage
 
     protected override string OnGetLogFormat()
     {
-        return $"Sync companion mission plan: scope={JoinScope}, seats={_seatOffers.Count}, assignments={_assignments.Count}";
+        return $"Sync companion mission plan: mission={MissionInstanceId}, scope={JoinScope}, seats={_seatOffers.Count}, assignments={_assignments.Count}";
     }
 
     private static CompanionSeatOffer ReadSeatOffer(ref bool bufferReadValid)

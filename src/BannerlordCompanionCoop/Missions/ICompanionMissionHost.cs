@@ -18,5 +18,7 @@ public interface ICompanionMissionHost
 
     int ReleaseRemotePlayer(string remotePlayerId);
 
+    bool TryRestorePreferredSeatForPeer(NetworkCommunicator networkPeer);
+
     bool TryClaimSeatForPeer(NetworkCommunicator networkPeer, string seatId, out string message);
 }

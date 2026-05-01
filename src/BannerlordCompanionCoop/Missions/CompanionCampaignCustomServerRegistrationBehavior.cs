@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Diagnostics;
 using BannerlordCompanionCoop.Integration;
 using TaleWorlds.Diamond;
 using TaleWorlds.CampaignSystem;
@@ -44,6 +45,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
         }
 
         _host = Mission.MissionBehaviors.OfType<ICompanionMissionHost>().FirstOrDefault();
+        CompanionModLogger.Info(
+            "CustomServer",
+            $"Initializing campaign custom server registration for mission '{Mission.SceneName}' (hostFound={_host is not null}).");
         if (_host is not null)
         {
             _host.MissionPlanChanged += HandleMissionPlanChanged;
@@ -69,6 +73,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             _host.MissionPlanChanged -= HandleMissionPlanChanged;
         }
 
+        CompanionModLogger.Info("CustomServer", "Removing campaign custom server registration behavior.");
         EndHostedCustomGame();
         base.OnRemoveBehavior();
     }
@@ -133,6 +138,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
         try
         {
             MultiplayerMain.Initialize(new GameNetworkHandler());
+            CompanionModLogger.Info("CustomServer", "Initialized Bannerlord multiplayer services.");
             return true;
         }
         catch (Exception exception)
@@ -148,6 +154,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
     {
         if (lobbyClient.Connected && lobbyClient.LoggedIn)
         {
+            CompanionModLogger.Info("CustomServer", "Lobby client is connected and logged in.");
             return true;
         }
 
@@ -205,6 +212,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
                     hasUserGeneratedContentPrivilege: true,
                     platformServices.GetInitParams(),
                     NoOpPreLoginTaskAsync);
+                CompanionModLogger.Info(
+                    "CustomServer",
+                    $"Started lobby client connect flow for '{platformServices.UserDisplayName}'.");
             }
             catch (Exception exception)
             {
@@ -240,6 +250,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             return false;
         }
 
+        CompanionModLogger.Info("CustomServer", "Lobby client sign-in completed successfully.");
         return lobbyClient.Connected && lobbyClient.LoggedIn;
     }
 
@@ -262,6 +273,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             }
 
             _startedMultiplayerSession = true;
+            CompanionModLogger.Info(
+                "CustomServer",
+                $"Started multiplayer battle host session on port {HostPort}.");
             return GameNetwork.IsSessionActive;
         }
         catch (Exception exception)
@@ -277,13 +291,14 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
     {
         string sceneName = GetPublishedSceneName();
         int publishedPlayerCount = GetPublishedPlayerCount(_host?.LatestPlan);
+        string serverName = BuildServerName();
 
         try
         {
             lobbyClient.RegisterCustomGame(
                 GameModuleId,
                 GameTypeId,
-                BuildServerName(),
+                serverName,
                 publishedPlayerCount,
                 sceneName,
                 sceneName,
@@ -295,6 +310,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             _registrationSubmittedAtUtc = DateTime.UtcNow;
             _lastPublishedScene = sceneName;
             _lastPublishedPlayerCount = publishedPlayerCount;
+            CompanionModLogger.Info(
+                "CustomServer",
+                $"Submitted custom game registration name='{serverName}', scene='{sceneName}', players={publishedPlayerCount}, port={HostPort}.");
         }
         catch (Exception exception)
         {
@@ -313,6 +331,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
         string sceneName = string.IsNullOrWhiteSpace(lobbyClient.CustomGameScene)
             ? GetPublishedSceneName()
             : lobbyClient.CustomGameScene;
+        CompanionModLogger.Info(
+            "CustomServer",
+            $"Custom game registration completed name='{BuildServerName()}', scene='{sceneName}', players={GetPublishedPlayerCount(_host?.LatestPlan)}.");
 
         ShowStatus(
             $"Companion Co-op battle published as '{BuildServerName()}' on scene '{sceneName}' (port {HostPort}).",
@@ -332,6 +353,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             return;
         }
 
+        CompanionModLogger.Info(
+            "CustomServer",
+            $"Mission plan changed while hosting. seatOffers={plan?.SeatOffers.Count ?? 0}, assignments={plan?.Assignments.Count ?? 0}.");
         PublishServerMetadata(lobbyClient, plan);
     }
 
@@ -351,6 +375,9 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             lobbyClient.UpdateCustomGameData(GameTypeId, sceneName, publishedPlayerCount);
             _lastPublishedScene = sceneName;
             _lastPublishedPlayerCount = publishedPlayerCount;
+            CompanionModLogger.Info(
+                "CustomServer",
+                $"Updated custom game metadata scene='{sceneName}', players={publishedPlayerCount}.");
         }
         catch (Exception exception)
         {
@@ -371,6 +398,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             try
             {
                 lobbyClient.EndCustomGame();
+                CompanionModLogger.Info("CustomServer", "Ended hosted custom game registration.");
             }
             catch (Exception exception)
             {
@@ -384,6 +412,7 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
             try
             {
                 GameNetwork.EndMultiplayer();
+                CompanionModLogger.Info("CustomServer", "Ended multiplayer host session.");
             }
             catch (Exception exception)
             {
@@ -436,6 +465,14 @@ public sealed class CompanionCampaignCustomServerRegistrationBehavior : MissionL
         }
 
         _lastStatusMessage = message;
+        if (isError)
+        {
+            CompanionModLogger.Error("CustomServer", message);
+        }
+        else
+        {
+            CompanionModLogger.Info("CustomServer", message);
+        }
         Debug.DisplayDebugMessage($"[BannerlordCompanionCoop] {message}");
         InformationManager.DisplayMessage(new InformationMessage(message));
 

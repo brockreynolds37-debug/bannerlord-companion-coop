@@ -1,5 +1,6 @@
 using System.Linq;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Diagnostics;
 using BannerlordCompanionCoop.Integration;
 using BannerlordCompanionCoop.Modes;
 using BannerlordCompanionCoop.Missions;
@@ -28,6 +29,9 @@ public sealed class BannerlordCompanionCoopSubModule : MBSubModuleBase
     {
         base.OnSubModuleLoad();
         Module.CurrentModule.AddMultiplayerGameMode(new CompanionDropInGameMode("CompanionDropIn"));
+        CompanionModLogger.Info(
+            "SubModule",
+            $"Loaded Bannerlord Companion Co-op. Log file: {CompanionModLogger.LogFilePath}");
     }
 
     protected override void OnApplicationTick(float dt)
@@ -67,6 +71,9 @@ public sealed class BannerlordCompanionCoopSubModule : MBSubModuleBase
             return;
         }
 
+        CompanionModLogger.Info(
+            "SubModule",
+            $"Injecting campaign co-op behaviors into mission '{mission.SceneName}' with scope '{CompanionMissionSceneScopeResolver.ResolveForMission(mission)}'.");
         AddBehaviorIfMissing(mission, new CompanionCampaignMissionHostBehavior());
         AddBehaviorIfMissing(mission, new CompanionCampaignCustomServerRegistrationBehavior());
         AddBehaviorIfMissing(mission, new CompanionBattlePossessionBehavior());

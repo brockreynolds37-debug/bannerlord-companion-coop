@@ -5,8 +5,11 @@
 1. Confirm the module appears in the launcher and the custom multiplayer mode can boot.
 2. Run a real host-and-guest battle test for:
    - server discovery from a live campaign battle
+   - late mission-network registration after the campaign battle transitions into a hosted multiplayer session
    - mission-plan sync
-   - hotkey control request near a companion
+   - host-side preferred companion restoration on reconnect / later battles
+   - automatic first-seat / preferred-seat claim on guest join for each new battle
+   - hotkey control request near a companion as a manual fallback
    - battle possession handoff
 3. Verify the new campaign battle injection path preserves the real campaign troop setup while the co-op seat host behavior initializes.
 4. Exercise the automation bridge on the Windows machine to prove `snapshot -> claim -> begin mission` without source edits.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Diagnostics;
 using BannerlordCompanionCoop.Integration;
 using BannerlordCompanionCoop.Networking;
 using BannerlordCompanionCoop.Services;
@@ -27,6 +28,9 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
             return;
         }
 
+        CompanionModLogger.Info(
+            "MissionServer",
+            $"Initializing standalone mission server behavior for mission '{Mission.SceneName}'.");
         _coordinator = new CompanionMissionCoordinator(_hostSession, _seatRegistry);
         _automationBridge = new CompanionAutomationBridge(_coordinator);
         InitializeMissionRoster();
@@ -105,6 +109,15 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         if (claimed)
         {
             RefreshPlan();
+            CompanionModLogger.Info(
+                "MissionServer",
+                $"Automation claimed seat '{claim.SeatId}' for remote player '{claim.RemotePlayerId}'.");
+        }
+        else
+        {
+            CompanionModLogger.Warn(
+                "MissionServer",
+                $"Automation failed to claim seat '{claim.SeatId}' for remote player '{claim.RemotePlayerId}'.");
         }
 
         return claimed;
@@ -138,10 +151,12 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         {
             RefreshPlan();
             message = $"Seat '{seatId}' claimed for remote player '{remotePlayerId}'.";
+            CompanionModLogger.Info("MissionServer", message);
             return true;
         }
 
         message = $"Seat '{seatId}' could not be claimed for remote player '{remotePlayerId}'.";
+        CompanionModLogger.Warn("MissionServer", message);
         return false;
     }
 
@@ -159,6 +174,28 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
 
         _coordinator.BeginMission();
         RefreshPlan();
+        CompanionModLogger.Info("MissionServer", "Mission transitioned to live state.");
+    }
+
+    public bool TryRestorePreferredSeatForPeer(NetworkCommunicator networkPeer)
+    {
+        if (_coordinator is null)
+        {
+            return false;
+        }
+
+        string remotePlayerId = CompanionRemotePlayerId.FromNetworkPeer(networkPeer);
+        bool restored = _coordinator.TryRestorePreferredSeat(remotePlayerId);
+        if (!restored)
+        {
+            return false;
+        }
+
+        RefreshPlan();
+        CompanionModLogger.Info(
+            "MissionServer",
+            $"Restored preferred seat for remote player '{remotePlayerId}' before mission sync.");
+        return true;
     }
 
     public int ReleaseRemotePlayer(string remotePlayerId)
@@ -173,6 +210,9 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         if (released > 0)
         {
             RefreshPlan();
+            CompanionModLogger.Info(
+                "MissionServer",
+                $"Released {released} seat reservation(s) for remote player '{remotePlayerId}'.");
         }
 
         return released;
@@ -188,6 +228,12 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
         }
 
         _latestPlan = _coordinator.TryBuildMissionPlan();
+        if (_latestPlan is not null)
+        {
+            CompanionModLogger.Info(
+                "MissionServer",
+                $"Refreshed mission plan scope={_latestPlan.JoinScope}, state={_latestPlan.State}, seatOffers={_latestPlan.SeatOffers.Count}, assignments={_latestPlan.Assignments.Count}.");
+        }
         MissionPlanChanged?.Invoke(_latestPlan);
     }
 
@@ -203,9 +249,13 @@ public sealed class CompanionDropInMissionServer : MissionMultiplayerGameModeBas
             out IReadOnlyList<CompanionHeroProfile> companionProfiles))
         {
             _coordinator.InitializeMission(saveId, companionProfiles, CompanionMissionJoinScope.Battles);
+            CompanionModLogger.Info(
+                "MissionServer",
+                $"Initialized mission roster from campaign seed '{saveId}' with {companionProfiles.Count} companion(s).");
             return;
         }
 
         _coordinator.InitializeDebugMission("debug_sandbox_save", CompanionMissionJoinScope.Battles);
+        CompanionModLogger.Warn("MissionServer", "Initialized mission roster from debug fallback catalog.");
     }
 }

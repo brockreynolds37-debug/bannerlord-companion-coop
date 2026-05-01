@@ -1,16 +1,19 @@
 <Module>
   <Name value="Bannerlord Companion Co-op" />
   <Id value="BannerlordCompanionCoop" />
-  <Version value="v0.0.1" />
-  <ModuleCategory value="Multiplayer" />
+  <Version value="v0.0.1.0" />
+  <RequiredBaseVersion value="v1.3.15" />
+  <SingleplayerModule value="true" />
+  <ModuleCategory value="Singleplayer" />
   <DependedModules>
-    <DependedModule Id="Native" Optional="false" />
-    <DependedModule Id="Multiplayer" Optional="false" />
-    <DependedModule Id="SandboxCore" Optional="true" />
-    <DependedModule Id="Sandbox" Optional="true" />
-    <DependedModule Id="StoryMode" Optional="true" />
-    <DependedModule Id="CustomBattle" Optional="true" />
+    <DependedModule Id="Native" DependentVersion="v1.3.15" Optional="false" />
+    <DependedModule Id="SandBoxCore" DependentVersion="v1.3.15" Optional="false" />
+    <DependedModule Id="Sandbox" DependentVersion="v1.3.15" Optional="false" />
+    <DependedModule Id="StoryMode" DependentVersion="v1.3.15" Optional="true" />
   </DependedModules>
+  <DependentExternalModuleDLLS>
+    <DependentDLL Module="Multiplayer" DLL="TaleWorlds.MountAndBlade.Multiplayer.dll" />
+  </DependentExternalModuleDLLS>
   <SubModules>
     <SubModule>
       <Name value="BannerlordCompanionCoop" />

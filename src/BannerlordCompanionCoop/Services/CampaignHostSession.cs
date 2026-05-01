@@ -9,6 +9,7 @@ public sealed class CampaignHostSession
 {
     private readonly List<CompanionSeatDefinition> _availableSeats = new();
     private readonly List<CompanionHeroProfile> _availableHeroes = new();
+    private readonly Dictionary<string, string> _preferredSeatIdsByRemotePlayerId = new(StringComparer.Ordinal);
 
     public string? ActiveSaveId { get; private set; }
 
@@ -18,9 +19,34 @@ public sealed class CampaignHostSession
 
     public void Start(string saveId)
     {
+        if (!string.Equals(ActiveSaveId, saveId, StringComparison.Ordinal))
+        {
+            _preferredSeatIdsByRemotePlayerId.Clear();
+        }
+
         ActiveSaveId = saveId;
         _availableSeats.Clear();
         _availableHeroes.Clear();
+    }
+
+    public void RememberSeatPreference(string remotePlayerId, string seatId)
+    {
+        if (string.IsNullOrWhiteSpace(remotePlayerId))
+        {
+            throw new ArgumentException("Remote player id is required.", nameof(remotePlayerId));
+        }
+
+        if (string.IsNullOrWhiteSpace(seatId))
+        {
+            throw new ArgumentException("Seat id is required.", nameof(seatId));
+        }
+
+        _preferredSeatIdsByRemotePlayerId[remotePlayerId] = seatId;
+    }
+
+    public bool TryGetPreferredSeatId(string remotePlayerId, out string? seatId)
+    {
+        return _preferredSeatIdsByRemotePlayerId.TryGetValue(remotePlayerId, out seatId);
     }
 
     public void PublishSeat(CompanionSeatDefinition seatDefinition)
@@ -67,6 +93,6 @@ public sealed class CampaignHostSession
             .Where(seat => seat.AllowGuestControl && seat.AllowedJoinScopes.Allows(joinScope))
             .ToArray();
 
-        return new MissionSeatSnapshot(ActiveSaveId, joinScope, seats);
+        return new MissionSeatSnapshot(Guid.NewGuid().ToString("N"), ActiveSaveId, joinScope, seats);
     }
 }

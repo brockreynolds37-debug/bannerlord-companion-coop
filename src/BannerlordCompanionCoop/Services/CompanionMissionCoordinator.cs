@@ -69,6 +69,31 @@ public sealed class CompanionMissionCoordinator
             return false;
         }
 
+        _hostSession.RememberSeatPreference(claim.RemotePlayerId, claim.SeatId);
+        RebuildAssignments();
+        return true;
+    }
+
+    public bool TryRestorePreferredSeat(string remotePlayerId)
+    {
+        if (_activeSnapshot is null
+            || string.IsNullOrWhiteSpace(remotePlayerId)
+            || !_hostSession.TryGetPreferredSeatId(remotePlayerId, out string? preferredSeatId)
+            || string.IsNullOrWhiteSpace(preferredSeatId))
+        {
+            return false;
+        }
+
+        if (_seatRegistry.TryGetReservationForRemotePlayer(remotePlayerId, out _))
+        {
+            return false;
+        }
+
+        if (!_seatRegistry.TryReserveSeat(preferredSeatId, remotePlayerId, _activeSnapshot.JoinScope))
+        {
+            return false;
+        }
+
         RebuildAssignments();
         return true;
     }
@@ -93,6 +118,7 @@ public sealed class CompanionMissionCoordinator
         }
 
         return new CompanionMissionPlan(
+            _activeSnapshot.MissionInstanceId,
             _activeSnapshot.SaveId,
             _activeSnapshot.JoinScope,
             _seatRegistry.State,

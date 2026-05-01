@@ -32,9 +32,14 @@ This repo is a starter scaffold. It establishes:
 - A first-pass battle hotkey flow that lets a guest look near a companion and press `O` to request control
 - A host-side campaign spectator snapshot with a short event log for future passenger-mode UI
 - A guest-side spectator session model that now receives the host's last campaign snapshot when the battle mission syncs
+- Automatic guest seat requests that reuse the last claimed companion when possible and otherwise claim the first available seat for each new mission instance
+- Host-side preferred seat restoration so returning guests can snap back to the same companion across later mission syncs when that seat still exists
+- Late-bound mission network registration for campaign-hosted battles, so the seat-sync handlers still come online even when the battle starts as a singleplayer mission before the multiplayer host session spins up
+- A first-pass runtime diagnostics log under `Documents/Mount and Blade II Bannerlord/Configs/ModLogs/`
 - Live host-campaign companion extraction when the mission is launched from a campaign context
 - Battle-only campaign mission injection so real campaign fights can host co-op seat state
 - Campaign battle registration that starts a player-hosted session and publishes the fight to Bannerlord's custom server list
+- A launcher/runtime manifest that declares the external `Multiplayer` DLL dependency explicitly for the singleplayer campaign module
 - A debug fallback roster when no campaign context is available
 - Design notes for the next implementation passes
 

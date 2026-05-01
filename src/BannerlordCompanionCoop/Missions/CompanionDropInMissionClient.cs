@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using BannerlordCompanionCoop.Contracts;
+using BannerlordCompanionCoop.Diagnostics;
 using BannerlordCompanionCoop.Networking;
 using BannerlordCompanionCoop.Services;
 using TaleWorlds.CampaignSystem;
@@ -17,6 +18,9 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     private const InputKey RequestCompanionControlHotKey = InputKey.O;
     private readonly List<CompanionSeatOffer> _seatOffers = new();
     private bool _hasShownBattleHint;
+    private string? _lastAutoRequestKey;
+    private string? _preferredHeroStringId;
+    private string? _preferredSeatId;
     private string? _lastSpectatorEventMessage;
     private string? _lastSpectatorSummaryMessage;
 
@@ -51,6 +55,9 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     public override void OnBehaviorInitialize()
     {
         base.OnBehaviorInitialize();
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Initialized mission client behavior for mission '{Mission.SceneName}' (networkClient={GameNetwork.IsClient}).");
     }
 
     public void ApplyMissionPlan(CompanionMissionPlan plan, string remotePlayerId)
@@ -64,12 +71,17 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         AssignedCharacterStringId = null;
 
         CompanionSeatAssignment? assignment = FindAssignmentForRemotePlayer(plan.Assignments, remotePlayerId);
+        RequestedSeatId = ResolveRequestedSeatId(plan, remotePlayerId, RequestedSeatId);
         if (assignment is not null)
         {
             ApplyAssignment(assignment);
         }
 
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Applied mission plan mission='{plan.MissionInstanceId}', remotePlayer='{remotePlayerId}', scope={plan.JoinScope}, state={plan.State}, seatOffers={plan.SeatOffers.Count}, assignments={plan.Assignments.Count}, requestedSeat='{RequestedSeatId ?? "none"}'.");
         ShowBattleHintIfNeeded();
+        TryAutoRequestSeat(plan);
     }
 
     public bool RequestSeat(CompanionSeatDefinition seatDefinition)
@@ -96,11 +108,23 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         {
             LastSeatClaimSucceeded = false;
             LastSeatClaimMessage = "Cannot request a companion seat before a mission scope is active.";
+            CompanionModLogger.Warn(
+                "MissionClient",
+                $"Rejected local seat request for seat '{seatId}' because no active mission scope was available.");
             return false;
         }
 
         CompanionMissionNetworkBehavior? networkBehavior = Mission.GetMissionBehavior<CompanionMissionNetworkBehavior>();
-        return networkBehavior is not null && networkBehavior.RequestSeatClaim(seatId);
+        bool requested = networkBehavior is not null && networkBehavior.RequestSeatClaim(seatId);
+        if (!requested && RequestedSeatId == seatId)
+        {
+            RequestedSeatId = null;
+        }
+
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Seat request for seat '{seatId}' in scope '{joinScope}' returned {requested}.");
+        return requested;
     }
 
     public CompanionSeatOffer? GetFirstAvailableSeat()
@@ -122,12 +146,21 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         AssignedHeroStringId = assignment.HeroStringId;
         AssignedCharacterStringId = assignment.CharacterStringId;
         LastSeatClaimSucceeded = true;
+        _preferredSeatId = assignment.SeatId;
+        _preferredHeroStringId = assignment.HeroStringId;
+        _lastAutoRequestKey = null;
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Applied assignment seat='{assignment.SeatId}', hero='{assignment.HeroStringId}', character='{assignment.CharacterStringId}'.");
     }
 
     public void ApplySeatClaimResult(string seatId, bool success, string message)
     {
         LastSeatClaimSucceeded = success;
         LastSeatClaimMessage = message;
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Seat claim result seat='{seatId}', success={success}, message='{message}'.");
         ShowStatus(message);
 
         if (!success && RequestedSeatId == seatId)
@@ -140,6 +173,9 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
     {
         CampaignSpectatorSnapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         BannerlordCompanionCoopSubModule.ApplyRemoteCampaignSpectatorSnapshot(snapshot);
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Applied campaign spectator snapshot summary='{snapshot.Summary}', recentEvents={snapshot.RecentEvents.Count}.");
         ShowCampaignSpectatorContext(snapshot);
     }
 
@@ -149,6 +185,7 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         _lastSpectatorEventMessage = null;
         _lastSpectatorSummaryMessage = null;
         BannerlordCompanionCoopSubModule.ClearRemoteCampaignSpectatorSnapshot();
+        CompanionModLogger.Info("MissionClient", "Cleared campaign spectator snapshot.");
     }
 
     public override void OnMissionTick(float dt)
@@ -170,16 +207,23 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         CompanionSeatOffer? seatOffer = FindSeatOfferNearCamera();
         if (seatOffer is null)
         {
+            CompanionModLogger.Warn("MissionClient", "Companion control hotkey pressed, but no nearby eligible seat was found.");
             ShowStatus("Move the camera near an available companion, then press O to take control.");
             return;
         }
 
         if (!RequestSeat(seatOffer))
         {
+            CompanionModLogger.Warn(
+                "MissionClient",
+                $"Companion control hotkey request failed for seat '{seatOffer.SeatId}' ({seatOffer.DisplayName}).");
             ShowStatus(LastSeatClaimMessage ?? $"Could not request control of {seatOffer.DisplayName}.");
             return;
         }
 
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Companion control hotkey requested seat '{seatOffer.SeatId}' ({seatOffer.DisplayName}).");
         ShowStatus($"Requested control of {seatOffer.DisplayName}.");
     }
 
@@ -314,6 +358,101 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
         return !string.IsNullOrWhiteSpace(left)
             && !string.IsNullOrWhiteSpace(right)
             && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void TryAutoRequestSeat(CompanionMissionPlan plan)
+    {
+        if (!ShouldAutoRequestSeat())
+        {
+            return;
+        }
+
+        CompanionSeatOffer? preferredSeat = FindPreferredSeatOffer();
+        CompanionSeatOffer? autoSelectedSeat = preferredSeat ?? GetFirstAvailableSeat();
+        if (autoSelectedSeat is null)
+        {
+            return;
+        }
+
+        string autoRequestKey = $"{plan.MissionInstanceId}|{autoSelectedSeat.SeatId}";
+        if (string.Equals(_lastAutoRequestKey, autoRequestKey, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (!RequestSeat(autoSelectedSeat))
+        {
+            CompanionModLogger.Warn(
+                "MissionClient",
+                $"Automatic seat request failed for seat '{autoSelectedSeat.SeatId}' ({autoSelectedSeat.DisplayName}).");
+            return;
+        }
+
+        _lastAutoRequestKey = autoRequestKey;
+        string strategy = preferredSeat is not null ? "preferred" : "first-available";
+        CompanionModLogger.Info(
+            "MissionClient",
+            $"Automatically requested {strategy} seat '{autoSelectedSeat.SeatId}' ({autoSelectedSeat.DisplayName}).");
+        ShowStatus($"Requesting {autoSelectedSeat.DisplayName} for this mission.");
+    }
+
+    private CompanionSeatOffer? FindPreferredSeatOffer()
+    {
+        foreach (CompanionSeatOffer seatOffer in _seatOffers)
+        {
+            if (!CanRequestControl(seatOffer))
+            {
+                continue;
+            }
+
+            if (Matches(seatOffer.SeatId, _preferredSeatId)
+                || Matches(seatOffer.HeroStringId, _preferredHeroStringId))
+            {
+                return seatOffer;
+            }
+        }
+
+        return null;
+    }
+
+    private bool ShouldAutoRequestSeat()
+    {
+        if (!GameNetwork.IsClient || GameNetwork.MyPeer is null || GameNetwork.MyPeer.IsServerPeer)
+        {
+            return false;
+        }
+
+        if (MissionState == CompanionMissionState.MissionEnded
+            || !string.IsNullOrWhiteSpace(AssignedHeroStringId)
+            || !string.IsNullOrWhiteSpace(RequestedSeatId)
+            || _seatOffers.Count == 0)
+        {
+            return false;
+        }
+
+        return ActiveJoinScope != CompanionMissionJoinScope.None;
+    }
+
+    private static string? ResolveRequestedSeatId(
+        CompanionMissionPlan plan,
+        string remotePlayerId,
+        string? requestedSeatId)
+    {
+        if (string.IsNullOrWhiteSpace(requestedSeatId))
+        {
+            return null;
+        }
+
+        foreach (CompanionSeatOffer seatOffer in plan.SeatOffers)
+        {
+            if (Matches(seatOffer.SeatId, requestedSeatId)
+                && string.Equals(seatOffer.ReservedByRemotePlayerId, remotePlayerId, StringComparison.Ordinal))
+            {
+                return seatOffer.SeatId;
+            }
+        }
+
+        return null;
     }
 
     private void ShowCampaignSpectatorContext(CompanionCampaignSpectatorSnapshot snapshot)

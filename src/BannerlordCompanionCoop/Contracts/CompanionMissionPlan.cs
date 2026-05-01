@@ -4,6 +4,7 @@ using BannerlordCompanionCoop.Services;
 namespace BannerlordCompanionCoop.Contracts;
 
 public sealed record CompanionMissionPlan(
+    string MissionInstanceId,
     string SaveId,
     CompanionMissionJoinScope JoinScope,
     CompanionMissionState State,
