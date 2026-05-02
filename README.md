@@ -50,6 +50,16 @@ It does not yet implement:
 - Scene filtering and join flow UI
 - Full save/persistence recovery around disconnects and mission end
 
+## Framework compatibility
+
+The module now declares optional load-order compatibility with the common Bannerlord framework stack:
+- `Bannerlord.Harmony`
+- `Bannerlord.ButterLib`
+- `Bannerlord.UIExtenderEx`
+- `Bannerlord.MBOptionScreen` (MCM v5)
+
+Those modules are not required to run Bannerlord Companion Co-op today, and the mod does not call their APIs directly yet. The compatibility work here is load-order metadata only, so if that framework stack is enabled it loads ahead of this module cleanly in both the vanilla launcher and BUTR-style community loaders.
+
 ## Build setup on PC
 
 1. Install Bannerlord and the Bannerlord Dedicated Server on the same version.
