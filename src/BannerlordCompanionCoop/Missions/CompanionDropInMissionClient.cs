@@ -474,8 +474,9 @@ public sealed class CompanionDropInMissionClient : MissionMultiplayerGameModeBas
             return;
         }
 
-        _lastSpectatorEventMessage = latestEvent;
-        ShowStatus(latestEvent);
+        string latestEventMessage = latestEvent!;
+        _lastSpectatorEventMessage = latestEventMessage;
+        ShowStatus(latestEventMessage);
     }
 
     private static void ShowStatus(string message)

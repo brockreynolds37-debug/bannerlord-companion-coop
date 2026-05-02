@@ -89,7 +89,8 @@ public sealed class CompanionMissionCoordinator
             return false;
         }
 
-        if (!_seatRegistry.TryReserveSeat(preferredSeatId, remotePlayerId, _activeSnapshot.JoinScope))
+        string seatId = preferredSeatId!;
+        if (!_seatRegistry.TryReserveSeat(seatId, remotePlayerId, _activeSnapshot.JoinScope))
         {
             return false;
         }

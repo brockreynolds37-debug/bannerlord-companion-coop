@@ -83,7 +83,7 @@ public sealed class CompanionAutomationBridge
 
         string saveId = string.IsNullOrWhiteSpace(command.SaveId)
             ? "debug_sandbox_save"
-            : command.SaveId;
+            : command.SaveId!;
 
         _coordinator.InitializeDebugMission(saveId, command.JoinScope.Value);
         message = $"Debug mission initialized for save '{saveId}' with scope '{command.JoinScope.Value}'.";
@@ -123,9 +123,11 @@ public sealed class CompanionAutomationBridge
             return false;
         }
 
+        string seatId = command.SeatId!;
+        string remotePlayerId = command.RemotePlayerId!;
         CompanionMissionJoinScope joinScope = command.JoinScope ?? _coordinator.ActiveJoinScope;
         bool claimed = _coordinator.TryClaimSeat(
-            new CompanionSeatClaim(command.SeatId, command.RemotePlayerId, joinScope));
+            new CompanionSeatClaim(seatId, remotePlayerId, joinScope));
 
         message = claimed
             ? $"Seat '{command.SeatId}' claimed for remote player '{command.RemotePlayerId}'."
@@ -142,7 +144,8 @@ public sealed class CompanionAutomationBridge
             return false;
         }
 
-        int released = _coordinator.ReleaseRemotePlayer(command.RemotePlayerId);
+        string remotePlayerId = command.RemotePlayerId!;
+        int released = _coordinator.ReleaseRemotePlayer(remotePlayerId);
         bool success = released > 0;
         message = success
             ? $"Released {released} seat claim(s) for remote player '{command.RemotePlayerId}'."

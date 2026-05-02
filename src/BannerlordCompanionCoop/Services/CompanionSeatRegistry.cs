@@ -114,8 +114,11 @@ public sealed class CompanionSeatRegistry
     {
         List<CompanionSeatAssignment> assignments = new();
 
-        foreach ((string seatId, CompanionSeatReservation reservation) in _reservations)
+        foreach (KeyValuePair<string, CompanionSeatReservation> pair in _reservations)
         {
+            string seatId = pair.Key;
+            CompanionSeatReservation reservation = pair.Value;
+
             if (!_definitions.TryGetValue(seatId, out CompanionSeatDefinition? definition))
             {
                 continue;

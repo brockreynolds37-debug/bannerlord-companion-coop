@@ -2,7 +2,7 @@
   <Import Project="..\..\BannerlordAssemblyPaths.props" Condition="Exists('..\..\BannerlordAssemblyPaths.props')" />
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -22,6 +22,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BannerlordCompanionCoop.Core\BannerlordCompanionCoop.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(BannerlordClientDir)' != ''">
