@@ -16,6 +16,8 @@ public sealed class BannerlordCompanionCoopSubModule : MBSubModuleBase
 {
     private static readonly CompanionCampaignSpectatorTracker CampaignSpectatorTracker = new();
     private static readonly CompanionCampaignSpectatorSession RemoteCampaignSpectatorSession = new();
+    private static readonly CompanionCampaignPassengerHost CampaignPassengerHost =
+        new(() => CampaignSpectatorTracker.LatestSnapshot);
 
     public static CompanionCampaignSpectatorSnapshot? LatestCampaignSpectatorSnapshot =>
         CampaignSpectatorTracker.LatestSnapshot;
@@ -29,9 +31,16 @@ public sealed class BannerlordCompanionCoopSubModule : MBSubModuleBase
     {
         base.OnSubModuleLoad();
         Module.CurrentModule.AddMultiplayerGameMode(new CompanionDropInGameMode("CompanionDropIn"));
+        CampaignPassengerHost.Start();
         CompanionModLogger.Info(
             "SubModule",
-            $"Loaded Bannerlord Companion Co-op. Log file: {CompanionModLogger.LogFilePath}");
+            $"Loaded Bannerlord Companion Co-op. Passenger feed: http://localhost:{CampaignPassengerHost.Port}/. Log file: {CompanionModLogger.LogFilePath}");
+    }
+
+    protected override void OnSubModuleUnloaded()
+    {
+        CampaignPassengerHost.Stop();
+        base.OnSubModuleUnloaded();
     }
 
     protected override void OnApplicationTick(float dt)
