@@ -44,11 +44,24 @@ This repo is a starter scaffold. It establishes:
 - Design notes for the next implementation passes
 
 It does not yet implement:
+- A Steam/friends-list invite button; the current test flow uses Bannerlord's custom game browser once a host battle is published
 - A guest-facing read-only campaign spectator waiting screen before battle join
 - Continuous pre-battle transport for spectator snapshots while the host is still riding around on the map
 - Reliable possession flows for town scenes, hideouts, and raids
 - Scene filtering and join flow UI
 - Full save/persistence recovery around disconnects and mission end
+
+## Current host/guest test flow
+
+1. Host enables the mod stack and launches `Singleplayer`.
+2. Host loads a campaign with at least one companion in the party.
+3. Host enters a normal campaign battle.
+4. The mod attempts to publish that live battle as a custom game named like `Companion Co-op Battle`.
+5. Guest installs the same mod build, enables it for the multiplayer/custom-game side, launches Bannerlord multiplayer, and opens the custom game browser.
+6. Guest joins the host's published `CompanionDropIn` custom game.
+7. Once loaded into battle, the guest should auto-claim a companion when possible, or press `O` near an eligible companion to request control.
+
+External guests may need the host's firewall/router to allow Bannerlord traffic on UDP port `9999`, which is the current test host port.
 
 ## Framework compatibility
 
